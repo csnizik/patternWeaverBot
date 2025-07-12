@@ -1,9 +1,7 @@
 const { startStream } = require('./src/core/streamManager')
+const { insertItem } = require('./src/database/queries')
 
 startStream(async (item) => {
-  console.log(
-    `[${item.subreddit}] ${item.type}: ${
-      item.title || item.body?.slice(0, 100)
-    }...`
-  )
+  await insertItem(item)
+  console.log(`Stored: [${item.subreddit}] ${item.type} ${item.id}`)
 })
