@@ -23,4 +23,20 @@ async function insertItem(item) {
   await db.query(query, values)
 }
 
-module.exports = { insertItem }
+async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
+  const query = `
+    SELECT *
+    FROM reddit_items
+    WHERE subreddit = $1
+      AND created_utc > NOW() - INTERVAL '${secondsAgo} seconds'
+    ORDER BY created_utc DESC;
+  `
+
+  const { rows } = await db.query(query, [subreddit])
+  return rows
+}
+
+module.exports = {
+  insertItem,
+  fetchRecentItems,
+}

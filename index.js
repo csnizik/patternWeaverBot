@@ -1,11 +1,9 @@
-const { startStream } = require('./src/core/streamManager')
-const { insertItem } = require('./src/database/queries') // ← ✅ missing line added
+const { fetchRecentItems } = require('./src/database/queries')
 
-startStream(async (item) => {
-  try {
-    await insertItem(item)
-    console.log(`Stored: [${item.subreddit}] ${item.type} ${item.id}`)
-  } catch (err) {
-    console.error('Insert failed:', err.message)
-  }
-})
+setInterval(async () => {
+  const items = await fetchRecentItems({
+    subreddit: 'climate',
+    secondsAgo: 120,
+  })
+  console.log(`[Analyzer] Found ${items.length} recent items from r/climate`)
+}, 30000)
