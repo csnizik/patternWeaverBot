@@ -13,12 +13,13 @@ export async function getRecentItems({ minutesAgo = 60 } = {}) {
   const query = `
     SELECT *
     FROM items
-    WHERE created_utc > NOW() - INTERVAL '${interval} minutes'
+    WHERE created_utc > NOW() - ($1 * INTERVAL '1 minute')
     ORDER BY created_utc DESC
   `
-  const { rows } = await pool.query(query)
+  const { rows } = await pool.query(query, [interval])
   return rows
 }
+
 
 /**
  * Persist a 384-dimensional embedding vector (as JSON) for a given item.
