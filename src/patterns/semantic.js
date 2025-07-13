@@ -5,7 +5,6 @@ dotenv.config()
 
 const HF_MODEL_URL =
   'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2'
-
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
 
 if (!HF_API_TOKEN) {
@@ -27,9 +26,7 @@ export async function embedText(text) {
       Authorization: `Bearer ${HF_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      inputs: [text.trim()], // ✅ properly wrapped in "inputs"
-    }),
+    body: JSON.stringify({ inputs: [text.trim()] }), // ✅ This is the fix
   })
 
   if (!response.ok) {
