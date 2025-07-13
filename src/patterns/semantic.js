@@ -5,7 +5,8 @@ const fetch = (...args) =>
 
 const HF_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
-const HF_API_URL = `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_MODEL}`
+const HF_API_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`
+
 
 async function embedText(text) {
   if (!text || text.trim().length === 0) {
