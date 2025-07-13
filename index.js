@@ -1,6 +1,6 @@
 // index.js
 import dotenv from 'dotenv'
-import { fetchRecentItems } from './src/database/queries.js'
+import { getRecentItems } from './src/database/queries.js'
 import { embedItem } from './src/patterns/semantic.js'
 import { compareRecentItems } from './src/patterns/analyzer.js'
 
@@ -9,7 +9,7 @@ dotenv.config()
 const run = async () => {
   try {
     const secondsAgo = 300 // 5 minutes
-    const items = await fetchRecentItems({
+    const items = await getRecentItems({
       subreddit: 'psychology',
       secondsAgo,
     })
