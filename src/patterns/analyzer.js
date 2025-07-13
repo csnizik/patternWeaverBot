@@ -1,33 +1,79 @@
-import { fetchItemsFromLastHour } from '../database/queries.js'
+// /src/patterns/analyzer.js
 import { embedItem } from './semantic.js'
-import cosineSimilarity from 'compute-cosine-similarity'
+import { getRecentItems } from '../database/queries.js'
+import cosineSimilarity from './cosine.js'
+
+// Minimum similarity to consider as a "connection"
+const SIMILARITY_THRESHOLD = 0.4
 
 /**
- * Compares recent items across subreddits and prints the top semantic similarities.
+ * Filters out items with null/blank title+body or suspected reposts
  */
-export async function compareRecentItems(allItems) {
-  console.log('[Analyzer] Embedding', allItems.length, 'items...')
+function filterItems(items) {
+  const seenHashes = new Set()
 
-  const filteredItems = allItems
-    .map((item) => {
-      const combined = `${item.title ?? ''}\n${item.body ?? ''}`.trim()
-      return { ...item, combined }
-    })
-    .filter((item) => item.combined.length > 0)
-    .filter(
-      (item, index, self) =>
-        self.findIndex((other) => other.combined === item.combined) === index
-    )
+  return items.filter((item) => {
+    const title = (item.title || '').trim()
+    const body = (item.body || '').trim()
+    const combined = `${title}\n\n${body}`.trim()
 
-  console.log(
-    `[Analyzer] Reduced to ${filteredItems.length} unique non-empty items.`
-  )
+    if (!combined || combined.length < 20) return false
 
-  const embedded = []
-  for (const item of filteredItems) {
-    const vector = await embedItem(item)
-    if (vector) embedded.push({ ...item, vector })
+    const hash = combined.toLowerCase().replace(/\s+/g, '')
+    if (seenHashes.has(hash)) return false
+
+    seenHashes.add(hash)
+    return true
+  })
+}
+
+export async function compareRecentItems() {
+  const allItems = await getRecentItems()
+  if (!Array.isArray(allItems) || allItems.length === 0) {
+    console.warn('[Analyzer] No items retrieved.')
+    return
   }
 
-  // then continue with similarity comparison logic...
+  const filtered = filterItems(allItems)
+  if (filtered.length === 0) {
+    console.warn('[Analyzer] All items were filtered out.')
+    return
+  }
+
+  console.log(`[Analyzer] Embedding ${filtered.length} items...`)
+  const embedded = await Promise.all(
+    filtered.map(async (item) => ({
+      ...item,
+      vector: await embedItem(item),
+    }))
+  )
+
+  const valid = embedded.filter((i) => Array.isArray(i.vector))
+  const pairs = []
+
+  for (let i = 0; i < valid.length; i++) {
+    for (let j = i + 1; j < valid.length; j++) {
+      const a = valid[i]
+      const b = valid[j]
+
+      if (a.subreddit === b.subreddit) continue
+      if (a.title === b.title && a.body === b.body) continue
+
+      const sim = cosineSimilarity(a.vector, b.vector)
+      if (sim >= SIMILARITY_THRESHOLD) {
+        pairs.push({ a, b, similarity: sim })
+      }
+    }
+  }
+
+  const top = pairs.sort((x, y) => y.similarity - x.similarity).slice(0, 5)
+
+  console.log('\n🔗 Top 5 cross-subreddit connections:\n')
+
+  for (const { a, b, similarity } of top) {
+    console.log(`[${a.subreddit}] ${a.title || '(no title)'}`)
+    console.log(`[${b.subreddit}] ${b.title || '(no title)'}\n`)
+    console.log(`  ↳ Cosine similarity: ${similarity.toFixed(4)}`)
+    console.log('—'.repeat(120))
+  }
 }
