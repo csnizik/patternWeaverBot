@@ -5,7 +5,6 @@ dotenv.config()
 
 const HF_MODEL_URL =
   'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2'
-
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
 
 if (!HF_API_TOKEN) {
@@ -27,7 +26,7 @@ export async function embedText(text) {
       Authorization: `Bearer ${HF_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify([text.trim()]),
+    body: JSON.stringify([text.trim()]), // <== send as array
   })
 
   if (!response.ok) {
@@ -43,7 +42,7 @@ export async function embedText(text) {
     throw new Error('Unexpected HF API response format (expected 2D array)')
   }
 
-  return result[0]
+  return result[0] // Return the vector itself
 }
 
 /**
