@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const HF_MODEL_URL =
-  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2'
+  'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2'
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
 
 if (!HF_API_TOKEN) {
@@ -20,15 +20,13 @@ export async function embedText(text) {
     throw new Error('Cannot embed empty text')
   }
 
-  const formattedInput = `passage: ${text.trim()}`
-
   const response = await fetch(HF_MODEL_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${HF_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ inputs: formattedInput }),
+    body: JSON.stringify([text.trim()]),
   })
 
   if (!response.ok) {
@@ -40,11 +38,11 @@ export async function embedText(text) {
 
   const result = await response.json()
 
-  if (!Array.isArray(result)) {
-    throw new Error('Unexpected HF API response format (expected array)')
+  if (!Array.isArray(result) || !Array.isArray(result[0])) {
+    throw new Error('Unexpected HF API response format (expected 2D array)')
   }
 
-  return result
+  return result[0]
 }
 
 /**
