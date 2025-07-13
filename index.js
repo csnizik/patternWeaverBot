@@ -1,10 +1,12 @@
-require('dotenv').config()
+// index.js
+import dotenv from 'dotenv'
+import { fetchRecentItems } from './src/database/queries.js'
+import { embedItem } from './src/patterns/semantic.js'
+import { compareRecentItems } from './src/patterns/analyzer.js'
 
-const { fetchRecentItems } = require('./src/database/queries')
-const { embedItem } = require('./src/patterns/semantic')
-const { compareRecentItems } = require('./src/patterns/analyzer')
+dotenv.config()
 
-;(async () => {
+const run = async () => {
   try {
     const secondsAgo = 300 // 5 minutes
     const items = await fetchRecentItems({
@@ -20,14 +22,15 @@ const { compareRecentItems } = require('./src/patterns/analyzer')
       console.log('ID:', item.id)
       console.log('Title:', item.title?.slice(0, 100))
       console.log('Body:', item.body?.slice(0, 100))
-      console.log('First 5 dims:', vector.slice(0, 5))
-      console.log('Vector length:', vector.length)
+      console.log('First 5 dims:', vector?.slice(0, 5))
+      console.log('Vector length:', vector?.length)
       console.log('—'.repeat(60))
     }
 
-    // 🔍 Run cross-subreddit comparison
     await compareRecentItems()
   } catch (err) {
     console.error('❌ Failed:', err.message)
   }
-})()
+}
+
+run()
