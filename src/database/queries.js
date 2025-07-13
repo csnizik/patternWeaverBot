@@ -1,5 +1,9 @@
+// /src/database/queries.js
+const db = require('../../config/database')
+
 async function insertItem(item) {
-  const { id, subreddit, type } = item
+  const { id, type, subreddit, author, createdUtc, title, body, permalink } =
+    item
 
   const query = `
     INSERT INTO reddit_items (id, type, subreddit, author, created_utc, title, body, permalink)
@@ -8,22 +12,16 @@ async function insertItem(item) {
   `
 
   const values = [
-    item.id,
-    item.type,
-    item.subreddit,
-    item.author,
-    item.createdUtc,
-    item.title,
-    item.body,
-    item.permalink,
+    id,
+    type,
+    subreddit,
+    author,
+    createdUtc,
+    title,
+    body,
+    permalink,
   ]
-
-  try {
-    await db.query(query, values)
-    console.log(`✔ inserted ${type} from r/${subreddit}`)
-  } catch (err) {
-    console.error(`✖ failed to insert ${id} from r/${subreddit}:`, err.message)
-  }
+  await db.query(query, values)
 }
 
 async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
@@ -39,3 +37,7 @@ async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
   return rows
 }
 
+module.exports = {
+  insertItem,
+  fetchRecentItems,
+}

@@ -1,20 +1,19 @@
+// /src/patterns/semantic.js
 const { HfInference } = require('@huggingface/inference')
 require('dotenv').config()
 
 const hf = new HfInference(process.env.HUGGINGFACE_API_TOKEN)
 
 /**
- * Converts Reddit content into a sentence embedding using E5-small.
- * Automatically prepends the model's required input format for inference.
- * @param {string} text - The text content to embed.
- * @returns {Promise<number[]>} embedding vector as an array of floats
+ * Embeds plain text using E5-small via Hugging Face API.
+ * Returns a 384-dimensional vector.
  */
 async function embedText(text) {
   if (!text || text.trim().length === 0) {
     throw new Error('Cannot embed empty text')
   }
 
-  const formattedInput = `passage: ${text}`
+  const formattedInput = `passage: ${text.trim()}`
 
   try {
     const embedding = await hf.featureExtraction({
@@ -34,9 +33,7 @@ async function embedText(text) {
 }
 
 /**
- * Wrapper for embedding a Reddit item (post or comment)
- * @param {object} item - A normalized item from streamManager
- * @returns {Promise<number[]>}
+ * Combines title and body (if present) to form input for semantic embedding.
  */
 async function embedItem(item) {
   const text = item.title
