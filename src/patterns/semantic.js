@@ -1,7 +1,7 @@
 // /src/database/queries.js
 const db = require('../../config/database')
 
-async function insertItem(item) {
+export async function insertItem(item) {
   const { id, type, subreddit, author, createdUtc, title, body, permalink } =
     item
 
@@ -27,7 +27,7 @@ async function insertItem(item) {
   await db.query(query, values)
 }
 
-async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
+export async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
   const intervalSeconds = Number(secondsAgo)
 
   const query = `
@@ -43,7 +43,7 @@ async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
   return rows
 }
 
-async function fetchItemsFromLastHour() {
+export async function fetchItemsFromLastHour() {
   const query = `
     SELECT *
     FROM reddit_items
@@ -54,7 +54,7 @@ async function fetchItemsFromLastHour() {
   return rows
 }
 
-async function fetchItemById(id) {
+export async function fetchItemById(id) {
   const query = `
     SELECT *
     FROM reddit_items
@@ -63,11 +63,4 @@ async function fetchItemById(id) {
   const values = [id]
   const { rows } = await db.query(query, values)
   return rows[0]
-}
-
-module.exports = {
-  insertItem,
-  fetchRecentItems,
-  fetchItemsFromLastHour,
-  fetchItemById,
 }
