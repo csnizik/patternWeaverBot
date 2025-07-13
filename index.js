@@ -2,24 +2,20 @@ const { fetchRecentItems } = require('./src/database/queries')
 const { embedItem } = require('./src/patterns/semantic')
 require('dotenv').config()
 
-;(async () => {
-  try {
-    const items = await fetchRecentItems({
-      subreddit: 'psychology',
-      secondsAgo: 300,
-    })
+const { query } = require('./config/database');
 
-    console.log(`Embedding ${items.length} items from r/psychology...`)
+(async () => {
+  const { rows } = await query(`
+    SELECT id, title, body, created_utc
+    FROM reddit_items
+    WHERE subreddit = 'psychology'
+      AND created_utc > NOW() - INTERVAL '5 minutes'
+    ORDER BY created_utc DESC;
+  `);
 
-    for (const item of items.slice(0, 5)) {
-      // limit for quick test
-      const vector = await embedItem(item)
-      console.log('ID:', item.id)
-      console.log('First 5 dims:', vector.slice(0, 5))
-      console.log('Vector length:', vector.length)
-      console.log('—'.repeat(40))
-    }
-  } catch (err) {
-    console.error('Test failed:', err.message)
-  }
-})()
+  console.log(`Pulled ${rows.length} rows from r/psychology`);
+  rows.forEach(r => {
+    console.log(`${r.id}: ${r.title?.slice(0, 50) || r.body?.slice(0, 50)} (${r.created_utc})`);
+  });
+})();
+
