@@ -26,7 +26,9 @@ export async function embedText(text) {
       Authorization: `Bearer ${HF_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify([text.trim()]), // <== send as array
+    body: JSON.stringify({
+      inputs: [text.trim()], // ✅ properly wrapped in "inputs"
+    }),
   })
 
   if (!response.ok) {
