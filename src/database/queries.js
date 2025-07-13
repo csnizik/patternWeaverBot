@@ -1,8 +1,5 @@
-const db = require('../../config/database')
-
 async function insertItem(item) {
-  const { id, type, subreddit, author, createdUtc, title, body, permalink } =
-    item
+  const { id, subreddit, type } = item
 
   const query = `
     INSERT INTO reddit_items (id, type, subreddit, author, created_utc, title, body, permalink)
@@ -11,32 +8,20 @@ async function insertItem(item) {
   `
 
   const values = [
-    id,
-    type,
-    subreddit,
-    author,
-    createdUtc,
-    title,
-    body,
-    permalink,
+    item.id,
+    item.type,
+    item.subreddit,
+    item.author,
+    item.createdUtc,
+    item.title,
+    item.body,
+    item.permalink,
   ]
-  await db.query(query, values)
-}
 
-async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
-  const query = `
-    SELECT *
-    FROM reddit_items
-    WHERE subreddit = $1
-      AND created_utc > NOW() - INTERVAL '${secondsAgo} seconds'
-    ORDER BY created_utc DESC;
-  `
-
-  const { rows } = await db.query(query, [subreddit])
-  return rows
-}
-
-module.exports = {
-  insertItem,
-  fetchRecentItems,
+  try {
+    await db.query(query, values)
+    console.log(`✔ inserted ${type} from r/${subreddit}`)
+  } catch (err) {
+    console.error(`✖ failed to insert ${id} from r/${subreddit}:`, err.message)
+  }
 }
