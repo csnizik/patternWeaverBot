@@ -7,7 +7,7 @@ const hf = new HfInference(process.env.HUGGINGFACE_API_TOKEN)
  * Embeds plain text using E5-small via Hugging Face API.
  * Returns a 384-dimensional vector.
  */
-async function embedText(text) {
+async function embedText(text, attempt = 1) {
   if (!text || text.trim().length === 0) {
     throw new Error('Cannot embed empty text')
   }
@@ -26,8 +26,19 @@ async function embedText(text) {
 
     return embedding
   } catch (err) {
-    console.error('[semantic.js] Failed to embed text:', err.message)
-    throw err
+    if (attempt >= 3) {
+      console.error(
+        `[semantic.js] Failed to embed text after 3 tries: ${err.message}`
+      )
+      throw err
+    }
+
+    const delay = 1000 * Math.pow(2, attempt) // 1s, 2s, 4s
+    console.warn(
+      `[semantic.js] Retry ${attempt} in ${delay}ms due to error: ${err.message}`
+    )
+    await new Promise((r) => setTimeout(r, delay))
+    return embedText(text, attempt + 1)
   }
 }
 
