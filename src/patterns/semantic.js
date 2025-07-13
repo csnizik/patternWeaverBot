@@ -1,13 +1,18 @@
-// /src/patterns/semantic.js
+const fetch = require('node-fetch')
 require('dotenv').config()
-const fetch = (...args) =>
-  import('node-fetch').then(({ default: fetch }) => fetch(...args))
 
-const HF_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
+const HF_MODEL_URL =
+  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2'
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
-const HF_API_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`
 
+if (!HF_API_TOKEN) {
+  throw new Error('HUGGINGFACE_API_TOKEN is not set in .env')
+}
 
+/**
+ * Embeds plain text using sentence-transformers/all-MiniLM-L6-v2 via Hugging Face Inference API.
+ * Returns a 384-dimensional vector.
+ */
 async function embedText(text) {
   if (!text || text.trim().length === 0) {
     throw new Error('Cannot embed empty text')
@@ -15,7 +20,7 @@ async function embedText(text) {
 
   const formattedInput = `passage: ${text.trim()}`
 
-  const res = await fetch(HF_API_URL, {
+  const response = await fetch(HF_MODEL_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${HF_API_TOKEN}`,
@@ -24,26 +29,36 @@ async function embedText(text) {
     body: JSON.stringify({ inputs: formattedInput }),
   })
 
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`HF API error: ${res.status} ${res.statusText} — ${body}`)
+  if (!response.ok) {
+    const msg = await response.text()
+    throw new Error(
+      `HF API error: ${response.status} ${response.statusText} — ${msg}`
+    )
   }
 
-  const embedding = await res.json()
+  const result = await response.json()
 
-  if (!Array.isArray(embedding)) {
-    throw new Error('Unexpected embedding response format')
+  if (!Array.isArray(result)) {
+    throw new Error('Unexpected HF API response format (expected array)')
   }
 
-  return embedding
+  return result
 }
 
+/**
+ * Combines title and body (if present) to form input for semantic embedding.
+ */
 async function embedItem(item) {
   const text = item.title
     ? `${item.title}\n\n${item.body || ''}`.trim()
     : item.body
 
-  return await embedText(text)
+  try {
+    return await embedText(text)
+  } catch (err) {
+    console.error(`[Analyzer] Failed to embed item ${item.id}:`, err.message)
+    return null
+  }
 }
 
 module.exports = {
