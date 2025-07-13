@@ -1,11 +1,13 @@
 // /src/patterns/semantic.js
-const { HfInference } = require('@huggingface/inference')
 require('dotenv').config()
+const fetch = require('node-fetch')
 
-const hf = new HfInference(process.env.HUGGINGFACE_API_TOKEN)
+const HF_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
+const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
+const HF_API_URL = `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_MODEL}`
 
 /**
- * Embeds plain text using all-MiniLM-L6-v2 via Hugging Face API.
+ * Embeds plain text using Hugging Face inference API (no SDK).
  * Returns a 384-dimensional vector.
  */
 async function embedText(text) {
@@ -15,25 +17,27 @@ async function embedText(text) {
 
   const formattedInput = `passage: ${text.trim()}`
 
-  try {
-    const embedding = await hf.featureExtraction({
-      model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: formattedInput,
-      options: {
-        useCache: true,
-        inference: { provider: 'hf-inference' }, // suppress "auto" spam
-      },
-    })
+  const res = await fetch(HF_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${HF_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ inputs: formattedInput }),
+  })
 
-    if (!Array.isArray(embedding)) {
-      throw new Error('Unexpected embedding response format')
-    }
-
-    return embedding
-  } catch (err) {
-    console.error('[semantic.js] Failed to embed text:', err.message)
-    throw err
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`HF API error: ${res.status} ${res.statusText} — ${body}`)
   }
+
+  const embedding = await res.json()
+
+  if (!Array.isArray(embedding)) {
+    throw new Error('Unexpected embedding response format')
+  }
+
+  return embedding
 }
 
 /**
