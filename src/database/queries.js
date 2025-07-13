@@ -6,8 +6,11 @@ async function insertItem(item) {
     item
 
   const query = `
-    INSERT INTO reddit_items (id, type, subreddit, author, created_utc, title, body, permalink)
-    VALUES ($1, $2, $3, $4, to_timestamp($5), $6, $7, $8)
+    INSERT INTO reddit_items (
+      id, type, subreddit, author, created_utc,
+      title, body, permalink, ingested_at
+    )
+    VALUES ($1, $2, $3, $4, to_timestamp($5), $6, $7, $8, NOW())
     ON CONFLICT (id) DO NOTHING;
   `
 
@@ -25,14 +28,17 @@ async function insertItem(item) {
 }
 
 async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
+  const intervalSeconds = Number(secondsAgo)
+
   const query = `
     SELECT *
     FROM reddit_items
     WHERE subreddit = $1
-      AND created_utc > NOW() - make_interval(secs => $2)
-    ORDER BY created_utc DESC;
+      AND ingested_at > NOW() - INTERVAL '${intervalSeconds} seconds'
+    ORDER BY ingested_at DESC;
   `
-  const values = [subreddit, secondsAgo]
+
+  const values = [subreddit]
   const { rows } = await db.query(query, values)
   return rows
 }
