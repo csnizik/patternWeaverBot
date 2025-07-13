@@ -1,11 +1,11 @@
 // /src/database/queries.js
-import db from '../../config/database.js'
+import { query } from '../../config/database.js'
 
 export async function insertItem(item) {
   const { id, type, subreddit, author, createdUtc, title, body, permalink } =
     item
 
-  const query = `
+  const sql = `
     INSERT INTO reddit_items (
       id, type, subreddit, author, created_utc,
       title, body, permalink, ingested_at
@@ -24,13 +24,13 @@ export async function insertItem(item) {
     body,
     permalink,
   ]
-  await db.query(query, values)
+  await query(sql, values)
 }
 
 export async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
   const intervalSeconds = Number(secondsAgo)
 
-  const query = `
+  const sql = `
     SELECT *
     FROM reddit_items
     WHERE subreddit = $1
@@ -39,28 +39,28 @@ export async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
   `
 
   const values = [subreddit]
-  const { rows } = await db.query(query, values)
+  const { rows } = await query(sql, values)
   return rows
 }
 
 export async function fetchItemsFromLastHour() {
-  const query = `
+  const sql = `
     SELECT *
     FROM reddit_items
     WHERE ingested_at > NOW() - INTERVAL '60 minutes'
     ORDER BY ingested_at DESC;
   `
-  const { rows } = await db.query(query)
+  const { rows } = await query(sql)
   return rows
 }
 
 export async function fetchItemById(id) {
-  const query = `
+  const sql = `
     SELECT *
     FROM reddit_items
     WHERE id = $1;
   `
   const values = [id]
-  const { rows } = await db.query(query, values)
+  const { rows } = await query(sql, values)
   return rows[0]
 }
