@@ -1,66 +1,64 @@
-// /src/database/queries.js
-const db = require('../../config/database')
+// /src/patterns/semantic.js
+import fetch from 'node-fetch'
+import dotenv from 'dotenv'
+dotenv.config()
 
-export async function insertItem(item) {
-  const { id, type, subreddit, author, createdUtc, title, body, permalink } =
-    item
+const HF_MODEL_URL =
+  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2'
+const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
 
-  const query = `
-    INSERT INTO reddit_items (
-      id, type, subreddit, author, created_utc,
-      title, body, permalink, ingested_at
+if (!HF_API_TOKEN) {
+  throw new Error('HUGGINGFACE_API_TOKEN is not set in .env')
+}
+
+/**
+ * Embeds plain text using sentence-transformers/all-MiniLM-L6-v2 via Hugging Face Inference API.
+ * Returns a 384-dimensional vector.
+ */
+export async function embedText(text) {
+  if (!text || text.trim().length === 0) {
+    throw new Error('Cannot embed empty text')
+  }
+
+  const formattedInput = `passage: ${text.trim()}`
+
+  const response = await fetch(HF_MODEL_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${HF_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ inputs: formattedInput }),
+  })
+
+  if (!response.ok) {
+    const msg = await response.text()
+    throw new Error(
+      `HF API error: ${response.status} ${response.statusText} — ${msg}`
     )
-    VALUES ($1, $2, $3, $4, to_timestamp($5), $6, $7, $8, NOW())
-    ON CONFLICT (id) DO NOTHING;
-  `
+  }
 
-  const values = [
-    id,
-    type,
-    subreddit,
-    author,
-    createdUtc,
-    title,
-    body,
-    permalink,
-  ]
-  await db.query(query, values)
+  const result = await response.json()
+
+  if (!Array.isArray(result)) {
+    throw new Error('Unexpected HF API response format (expected array)')
+  }
+
+  return result
 }
 
-export async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
-  const intervalSeconds = Number(secondsAgo)
+/**
+ * Combines title and body (if present) to form input for semantic embedding.
+ */
+export async function embedItem(item) {
+  const text = item.title
+    ? `${item.title}\n\n${item.body || ''}`.trim()
+    : item.body
 
-  const query = `
-    SELECT *
-    FROM reddit_items
-    WHERE subreddit = $1
-      AND ingested_at > NOW() - INTERVAL '${intervalSeconds} seconds'
-    ORDER BY ingested_at DESC;
-  `
-
-  const values = [subreddit]
-  const { rows } = await db.query(query, values)
-  return rows
-}
-
-export async function fetchItemsFromLastHour() {
-  const query = `
-    SELECT *
-    FROM reddit_items
-    WHERE ingested_at > NOW() - INTERVAL '60 minutes'
-    ORDER BY ingested_at DESC;
-  `
-  const { rows } = await db.query(query)
-  return rows
-}
-
-export async function fetchItemById(id) {
-  const query = `
-    SELECT *
-    FROM reddit_items
-    WHERE id = $1;
-  `
-  const values = [id]
-  const { rows } = await db.query(query, values)
-  return rows[0]
+  try {
+    return await embedText(text)
+  } catch (err) {
+    console.error(`[Analyzer] Failed to embed item ${item.id}:`, err.message)
+    return null
+  }
 }
