@@ -1,5 +1,5 @@
 import { fetchItemsFromLastHour } from '../database/queries.js'
-import { embedItem } from './semantic.js'
+import { insertItem } from './semantic.js'
 import cosineSimilarity from 'compute-cosine-similarity'
 
 /**
@@ -17,7 +17,7 @@ export async function compareRecentItems() {
   console.log(`[Analyzer] Embedding ${items.length} items...`)
   const vectors = []
   for (const item of items) {
-    const vector = await embedItem(item)
+    const vector = await insertItem(item)
     if (vector) {
       vectors.push({ id: item.id, vector, item })
     }
