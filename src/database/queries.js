@@ -25,3 +25,17 @@ async function insertItem(item) {
     console.error(`✖ failed to insert ${id} from r/${subreddit}:`, err.message)
   }
 }
+
+async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
+  const query = `
+    SELECT *
+    FROM reddit_items
+    WHERE subreddit = $1
+      AND created_utc > NOW() - make_interval(secs => $2)
+    ORDER BY created_utc DESC;
+  `
+  const values = [subreddit, secondsAgo]
+  const { rows } = await db.query(query, values)
+  return rows
+}
+
