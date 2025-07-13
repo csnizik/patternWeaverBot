@@ -46,4 +46,7 @@ async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
 module.exports = {
   insertItem,
   fetchRecentItems,
+  fetchItemsFromLastHour,
+  fetchItemById,
 }
+
