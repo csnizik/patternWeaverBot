@@ -1,4 +1,5 @@
-const fetch = require('node-fetch')
+import fetch from 'node-fetch'
+
 require('dotenv').config()
 
 const HF_MODEL_URL =
