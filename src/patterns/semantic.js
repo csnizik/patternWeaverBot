@@ -4,7 +4,8 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const HF_MODEL_URL =
-  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2'
+  'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2'
+
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
 
 if (!HF_API_TOKEN) {
