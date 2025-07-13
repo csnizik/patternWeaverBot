@@ -1,56 +1,54 @@
-// /src/patterns/semantic.js
-import dotenv from 'dotenv'
-dotenv.config()
+import { fetchItemsFromLastHour } from '../database/queries.js'
+import { embedItem } from './semantic.js'
+import cosineSimilarity from 'compute-cosine-similarity'
 
-const HF_MODEL_URL =
-  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2'
-const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
+/**
+ * Compares recent items across subreddits and prints the top semantic similarities.
+ */
+export async function compareRecentItems() {
+  console.log('[Analyzer] Fetching items from last 60 min...')
+  const items = await fetchItemsFromLastHour()
 
-if (!HF_API_TOKEN) {
-  throw new Error('HUGGINGFACE_API_TOKEN is not set in .env')
-}
-
-export async function embedText(text) {
-  if (!text || text.trim().length === 0) {
-    throw new Error('Cannot embed empty text')
+  if (items.length < 2) {
+    console.log('Not enough items to compare.')
+    return
   }
 
-  const formattedInput = `passage: ${text.trim()}`
-
-  const response = await fetch(HF_MODEL_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${HF_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ inputs: formattedInput }),
-  })
-
-  if (!response.ok) {
-    const msg = await response.text()
-    throw new Error(
-      `HF API error: ${response.status} ${response.statusText} — ${msg}`
-    )
+  console.log(`[Analyzer] Embedding ${items.length} items...`)
+  const vectors = []
+  for (const item of items) {
+    const vector = await embedItem(item)
+    if (vector) {
+      vectors.push({ id: item.id, vector, item })
+    }
   }
 
-  const result = await response.json()
+  console.log('[Analyzer] Comparing cross-subreddit pairs...\n')
 
-  if (!Array.isArray(result)) {
-    throw new Error('Unexpected HF API response format (expected array)')
+  const results = []
+
+  for (let i = 0; i < vectors.length; i++) {
+    for (let j = i + 1; j < vectors.length; j++) {
+      const a = vectors[i]
+      const b = vectors[j]
+
+      if (a.item.subreddit === b.item.subreddit) continue
+
+      const score = cosineSimilarity(a.vector, b.vector)
+      results.push({ a: a.item, b: b.item, score })
+    }
   }
 
-  return result
-}
+  const topMatches = results.sort((a, b) => b.score - a.score).slice(0, 5)
 
-export async function embedItem(item) {
-  const text = item.title
-    ? `${item.title}\n\n${item.body || ''}`.trim()
-    : item.body
+  console.log('🔗 Top 5 cross-subreddit connections:\n')
+  for (const match of topMatches) {
+    const titleA = match.a.title || '(no title)'
+    const titleB = match.b.title || '(no title)'
 
-  try {
-    return await embedText(text)
-  } catch (err) {
-    console.error(`[Analyzer] Failed to embed item ${item.id}:`, err.message)
-    return null
+    console.log(`[${match.a.subreddit}] ${titleA.slice(0, 80)}`)
+    console.log(`[${match.b.subreddit}] ${titleB.slice(0, 80)}\n`)
+    console.log(`  ↳ Cosine similarity: ${match.score.toFixed(4)}`)
+    console.log('—'.repeat(112))
   }
 }
