@@ -1,15 +1,12 @@
 // /src/patterns/semantic.js
 require('dotenv').config()
-const fetch = require('node-fetch')
+const fetch = (...args) =>
+  import('node-fetch').then(({ default: fetch }) => fetch(...args))
 
 const HF_MODEL = 'sentence-transformers/all-MiniLM-L6-v2'
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
 const HF_API_URL = `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_MODEL}`
 
-/**
- * Embeds plain text using Hugging Face inference API (no SDK).
- * Returns a 384-dimensional vector.
- */
 async function embedText(text) {
   if (!text || text.trim().length === 0) {
     throw new Error('Cannot embed empty text')
@@ -40,9 +37,6 @@ async function embedText(text) {
   return embedding
 }
 
-/**
- * Combines title and body (if present) to form input for semantic embedding.
- */
 async function embedItem(item) {
   const text = item.title
     ? `${item.title}\n\n${item.body || ''}`.trim()
