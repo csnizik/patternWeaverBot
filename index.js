@@ -1,21 +1,29 @@
-const { fetchRecentItems } = require('./src/database/queries')
-const { embedItem } = require('./src/patterns/semantic')
 require('dotenv').config()
 
-const { query } = require('./config/database');
+const { fetchRecentItems } = require('./src/database/queries')
+const { embedItem } = require('./src/patterns/semantic')
 
-(async () => {
-  const { rows } = await query(`
-    SELECT id, title, body, created_utc
-    FROM reddit_items
-    WHERE subreddit = 'psychology'
-      AND created_utc > NOW() - INTERVAL '5 minutes'
-    ORDER BY created_utc DESC;
-  `);
+;(async () => {
+  try {
+    const secondsAgo = 300 // 5 minutes
+    const items = await fetchRecentItems({
+      subreddit: 'psychology',
+      secondsAgo,
+    })
 
-  console.log(`Pulled ${rows.length} rows from r/psychology`);
-  rows.forEach(r => {
-    console.log(`${r.id}: ${r.title?.slice(0, 50) || r.body?.slice(0, 50)} (${r.created_utc})`);
-  });
-})();
+    console.log(`Embedding ${items.length} items from r/psychology...`)
 
+    for (const item of items.slice(0, 5)) {
+      const vector = await embedItem(item)
+
+      console.log('ID:', item.id)
+      console.log('Title:', item.title?.slice(0, 100))
+      console.log('Body:', item.body?.slice(0, 100))
+      console.log('First 5 dims:', vector.slice(0, 5))
+      console.log('Vector length:', vector.length)
+      console.log('—'.repeat(60))
+    }
+  } catch (err) {
+    console.error('❌ Failed:', err.message)
+  }
+})()
