@@ -28,7 +28,7 @@ function filterItems(items) {
 }
 
 export async function compareRecentItems() {
-  const allItems = await getRecentItems()
+  const allItems = await getRecentItems({ minutesAgo: 60 })
   if (!Array.isArray(allItems) || allItems.length === 0) {
     console.warn('[Analyzer] No items retrieved.')
     return
