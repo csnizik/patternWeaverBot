@@ -4,8 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const HF_MODEL_URL =
-  'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-MiniLM-L6-v2'
-
+  'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction'
 const HF_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN
 
 if (!HF_API_TOKEN) {
@@ -27,7 +26,9 @@ export async function embedText(text) {
       Authorization: `Bearer ${HF_API_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ inputs: [text.trim()] }), // ✅ This is the fix
+    body: JSON.stringify({
+      inputs: [text.trim()], // required format for inference API
+    }),
   })
 
   if (!response.ok) {
@@ -43,7 +44,7 @@ export async function embedText(text) {
     throw new Error('Unexpected HF API response format (expected 2D array)')
   }
 
-  return result[0] // Return the vector itself
+  return result[0] // 384-d vector
 }
 
 /**
