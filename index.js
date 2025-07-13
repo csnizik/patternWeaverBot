@@ -2,6 +2,7 @@ require('dotenv').config()
 
 const { fetchRecentItems } = require('./src/database/queries')
 const { embedItem } = require('./src/patterns/semantic')
+const { compareRecentItems } = require('./src/patterns/analyzer')
 
 ;(async () => {
   try {
@@ -23,6 +24,9 @@ const { embedItem } = require('./src/patterns/semantic')
       console.log('Vector length:', vector.length)
       console.log('—'.repeat(60))
     }
+
+    // 🔍 Run cross-subreddit comparison
+    await compareRecentItems()
   } catch (err) {
     console.error('❌ Failed:', err.message)
   }

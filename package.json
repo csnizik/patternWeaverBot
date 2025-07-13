@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@huggingface/inference": "^4.5.1",
+    "compute-cosine-similarity": "^1.1.0",
     "dotenv": "^17.2.0",
     "install": "^0.13.0",
     "npm": "^11.4.2",
