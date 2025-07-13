@@ -43,10 +43,31 @@ async function fetchRecentItems({ subreddit, secondsAgo = 300 }) {
   return rows
 }
 
+async function fetchItemsFromLastHour() {
+  const query = `
+    SELECT *
+    FROM reddit_items
+    WHERE ingested_at > NOW() - INTERVAL '60 minutes'
+    ORDER BY ingested_at DESC;
+  `
+  const { rows } = await db.query(query)
+  return rows
+}
+
+async function fetchItemById(id) {
+  const query = `
+    SELECT *
+    FROM reddit_items
+    WHERE id = $1;
+  `
+  const values = [id]
+  const { rows } = await db.query(query, values)
+  return rows[0]
+}
+
 module.exports = {
   insertItem,
   fetchRecentItems,
   fetchItemsFromLastHour,
   fetchItemById,
 }
-
