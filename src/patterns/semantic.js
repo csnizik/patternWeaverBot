@@ -1,4 +1,3 @@
-// /src/patterns/semantic.js
 const { HfInference } = require('@huggingface/inference')
 require('dotenv').config()
 
@@ -17,7 +16,7 @@ async function embedText(text) {
 
   try {
     const embedding = await hf.featureExtraction({
-      model: 'intfloat/e5-small',
+      model: 'sentence-transformers/all-MiniLM-L6-v2',
       inputs: formattedInput,
     })
 
